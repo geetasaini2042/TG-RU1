@@ -1,23 +1,17 @@
-[
-  {
-    "id": 1,
-    "title": "Exam Date Sheet Released",
-    "desc": "B.Sc aur B.A ke exams 15 April se shuru honge.",
-    "date": "Aaj",
-    "urgent": true
-  },
-  {
-    "id": 2,
-    "title": "Scholarship Form Open",
-    "desc": "Samaj Kalyan vibhag ke form portal par live hain.",
-    "date": "Kal",
-    "urgent": false
-  },
-  {
-    "id": 3,
-    "title": "App Launch Party",
-    "desc": "USG India app ab live hai!",
-    "date": "Abhi",
-    "urgent": false
-  }
-]
+{
+  "news": [
+    { "id": 1, "title": "Exam Form Date Extended", "desc": "Last date is now 30th Oct with late fee.", "date": "2 hrs ago", "urgent": true },
+    { "id": 2, "title": "Diwali Holidays Notice", "desc": "College closed from 1st to 5th Nov.", "date": "Yesterday", "urgent": false },
+    { "id": 3, "title": "Scholarship List Out", "desc": "Check the portal for eligible names.", "date": "2 days ago", "urgent": false }
+  ],
+  "feeds": [
+    { "id": 1, "image": "https://picsum.photos/id/20/600/300", "title": "Tech Fest 2025 Highlights", "tag": "#Events", "likes": "1.2k" },
+    { "id": 2, "image": "https://picsum.photos/id/24/600/300", "title": "New Library Wing Open", "tag": "#Campus", "likes": "850" },
+    { "id": 3, "image": "https://picsum.photos/id/4/600/300", "title": "Sports Meet Winners", "tag": "#Sports", "likes": "2.3k" }
+  ],
+  "resources": [
+    { "category": "Syllabus 2025", "items": ["B.Sc Sem 1", "B.A Sem 3", "B.Com Final"] },
+    { "category": "Old Papers", "items": ["Physics 2023", "History 2022", "Maths 2024"] },
+    { "category": "Quick Links", "items": ["Exam Portal", "Result Server", "Student Login"] }
+  ]
+}
