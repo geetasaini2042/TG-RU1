@@ -6,6 +6,7 @@ import {
   Calendar, GraduationCap, FileText, Globe 
 } from 'lucide-react';
 import Login from './Login';
+import Profile from './pages/Profile'; // Adjust path based on where you saved it
 
 function App() {
   // --- STATES ---
@@ -225,44 +226,8 @@ function App() {
           )}
 
           {/* === TAB 4: PROFILE === */}
-          {activeTab === 'profile' && (
-            <motion.div 
-              key="profile"
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center pt-6 space-y-6"
-            >
-              <div className="relative">
-                <div className="w-28 h-28 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 p-1">
-                  <div className="w-full h-full bg-white rounded-full flex items-center justify-center text-4xl font-bold text-gray-700">
-                    {userData?.first_name[0]}
-                  </div>
-                </div>
-                <div className="absolute bottom-1 right-1 w-8 h-8 bg-green-500 border-4 border-white rounded-full"></div>
-              </div>
-              
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800">{userData?.first_name} {userData?.last_name}</h2>
-                <p className="text-gray-500">@telegram_user</p>
-                <div className="flex gap-2 justify-center mt-3">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Student</span>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">RU Campus</span>
-                </div>
-              </div>
+          {activeTab === 'profile' && <Profile />}
 
-              <div className="w-full space-y-3">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><Moon size={16}/></div>
-                    <span className="font-medium">Dark Mode</span>
-                  </div>
-                  <div className="w-10 h-5 bg-gray-300 rounded-full relative"><div className="w-5 h-5 bg-white rounded-full shadow-md absolute left-0"></div></div>
-                </div>
-                <button onClick={handleLogout} className="w-full bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-3 text-red-500 font-bold hover:bg-red-50">
-                   <LogOut size={20} /> Logout
-                </button>
-              </div>
-            </motion.div>
-          )}
 
         </AnimatePresence>
       </main>
