@@ -13,7 +13,7 @@ function App() {
 
     // --- RENDER API CALL ---
     // Yaha apna Render API URL daalna
-    fetch('https://your-render-api.onrender.com/api/updates') 
+    fetch('/public/updates.json') 
       .then(res => res.json())
       .then(result => {
         setData(result); // Maan lo result ek array hai updates ka
