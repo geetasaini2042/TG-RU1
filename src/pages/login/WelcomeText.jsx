@@ -1,21 +1,13 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
-const WelcomeText = () => {
+const WelcomeText = ({ name }) => {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="text-center mb-8"
-    >
-      <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-        Namaste! 🙏
-      </h1>
-      <p className="text-blue-100 text-sm opacity-90 font-medium">
-        Universities Student Group India
+    <div className="text-center mb-8">
+      <h2 className="text-2xl font-bold text-white mb-1">Welcome Back!</h2>
+      <p className="text-blue-200 text-sm font-medium">
+        Ready to study, {name?.split(' ')[0]}?
       </p>
-    </motion.div>
+    </div>
   );
 };
 
