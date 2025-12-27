@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "title": "Exam Date Sheet Released",
+    "desc": "B.Sc aur B.A ke exams 15 April se shuru honge.",
+    "date": "Aaj",
+    "urgent": true
+  },
+  {
+    "id": 2,
+    "title": "Scholarship Form Open",
+    "desc": "Samaj Kalyan vibhag ke form portal par live hain.",
+    "date": "Kal",
+    "urgent": false
+  },
+  {
+    "id": 3,
+    "title": "App Launch Party",
+    "desc": "USG India app ab live hai!",
+    "date": "Abhi",
+    "urgent": false
+  }
+]
