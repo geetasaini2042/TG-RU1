@@ -9,7 +9,7 @@ import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
 import Feeds from './pages/Feeds';
 import Resources from './pages/Resources';
-import Profile from './pages/Profile';
+import Profile from './pages/profile/Profile';
 import { LogOut } from 'lucide-react';
 
 function App() {
