@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, Search } from 'lucide-react';
 
 // --- IMPORTING PAGES & COMPONENTS ---
-import Login from './Login';
+import Login from './pages/login/Login';
+
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
 import Feeds from './pages/Feeds';
