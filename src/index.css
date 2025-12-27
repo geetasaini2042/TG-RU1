@@ -1,32 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* === GLOBAL STYLES FOR NATIVE FEEL === */
 
-/* Custom Scrollbar for sleek look */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-}
+* {
+  /* Text Selection Band karein */
+  -webkit-user-select: none; /* Safari/Chrome */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE/Edge */
+  user-select: none;         /* Standard */
 
-body {
-  background-color: #f8fafc;
+  /* Link/Image par Long Press Menu (iOS) Band karein */
+  -webkit-touch-callout: none;
+
+  /* Button click par Blue Box hatayein */
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Utilities */
-.glass-effect {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.3);
+/* ⚠️ IMPORTANT: Input fields mein selection allow karein */
+/* Warna user form nahi bhar payega */
+input, textarea {
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }
 
-.card-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Images ko drag hone se rokein */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none; /* Optional: Agar image click na karwani ho */
 }
