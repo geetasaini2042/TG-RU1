@@ -1,29 +1,28 @@
-/* === GLOBAL STYLES FOR NATIVE FEEL === */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-* {
-  /* Text Selection Band karein */
-  -webkit-user-select: none; /* Safari/Chrome */
-  -moz-user-select: none;    /* Firefox */
-  -ms-user-select: none;     /* IE/Edge */
-  user-select: none;         /* Standard */
-
-  /* Link/Image par Long Press Menu (iOS) Band karein */
-  -webkit-touch-callout: none;
-
-  /* Button click par Blue Box hatayein */
-  -webkit-tap-highlight-color: transparent;
+/* Smooth Theme Transition */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ⚠️ IMPORTANT: Input fields mein selection allow karein */
-/* Warna user form nahi bhar payega */
-input, textarea {
-  -webkit-user-select: text !important;
-  user-select: text !important;
+/* Dark Mode Utilities */
+.dark body {
+  background-color: #0f172a; /* Slate 900 */
+  color: #f8fafc;
 }
 
-/* Images ko drag hone se rokein */
-img {
-  -webkit-user-drag: none;
-  user-drag: none;
-  pointer-events: none; /* Optional: Agar image click na karwani ho */
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+/* Input Auto-fill fix for Dark Mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: inherit;
+  -webkit-box-shadow: 0 0 0px 1000px #1e293b inset; /* Slate 800 */
+  transition: background-color 5000s ease-in-out 0s;
 }
