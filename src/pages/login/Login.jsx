@@ -3,7 +3,6 @@ import { isTelegramEnvironment, getSecureHeaders } from '../../utils/security';
 import { API_ENDPOINTS } from '../../config/apiConfig';
 import { ShieldAlert, Loader2 } from 'lucide-react';
 
-// Sub-components
 import SignupForm from './SignupForm';
 import BrandLogo from './BrandLogo';
 import WelcomeText from './WelcomeText';
@@ -11,92 +10,101 @@ import UserCard from './UserCard';
 import LoginButton from './LoginButton';
 
 const Login = ({ onLogin }) => {
-  const [status, setStatus] = useState('CHECKING'); // CHECKING | ERROR | SIGNUP | LOGIN
+  const [status, setStatus] = useState('CHECKING'); // CHECKING | SIGNUP | LOGIN | ERROR
   const [tgUser, setTgUser] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [apiUserData, setApiUserData] = useState(null); // Data from Server
+  const [apiToken, setApiToken] = useState(null);       // Token from Server
 
   useEffect(() => {
-    // 1. SECURITY CHECK: Is it Telegram?
+    // 1. Security Check
     if (!isTelegramEnvironment()) {
         setStatus('ERROR');
-        setErrorMsg("Access Denied: Please open this in Telegram App.");
         return;
     }
 
     const user = window.Telegram.WebApp.initDataUnsafe.user;
     setTgUser(user);
-
-    // 2. CHECK API: Does user exist?
-    checkUserExistence(user);
-
+    
+    // 2. Start API Check
+    checkUserOnServer(user);
   }, []);
 
-  const checkUserExistence = async (user) => {
+  const checkUserOnServer = async (user) => {
       try {
-          // Fake API check for demo (Replace with real fetch)
-          // const res = await fetch(API_ENDPOINTS.CHECK_USER, { headers: getSecureHeaders() });
-          
-          // Simulation: If user ID ends with '1' -> New User (Signup)
-          // Otherwise -> Existing User (Login)
-          setTimeout(() => {
-              if (user.id.toString().endsWith('1')) {
-                  setStatus('SIGNUP'); // User not found in DB
-              } else {
-                  setStatus('LOGIN'); // User found
-              }
-          }, 1500);
+          const response = await fetch(API_ENDPOINTS.CHECK_USER, {
+              method: 'POST',
+              headers: getSecureHeaders(),
+              body: JSON.stringify({ tg_id: user.id })
+          });
 
+          const data = await response.json();
+
+          if (data.STATUS_CODE === 200) {
+              if (data.RESPONSE.is_registered) {
+                  // User Hai -> Login Mode
+                  setApiUserData(data.RESPONSE.user_data);
+                  setApiToken(data.RESPONSE.token);
+                  setStatus('LOGIN');
+              } else {
+                  // User Nahi Hai -> Signup Mode
+                  setStatus('SIGNUP');
+              }
+          } else {
+              // Server Error
+              alert("Server Error: " + data.MESSAGE);
+          }
       } catch (err) {
-          console.error("Server Error");
-          setStatus('SIGNUP'); // Fallback to signup if check fails (or handle error)
+          console.error("Connection Failed", err);
+          // Fallback logic for testing (Remove in production)
+          setStatus('SIGNUP'); 
       }
   };
 
-  const handleSignupComplete = (newUserData) => {
-      // Registration API call is done inside form.
-      // Now simply log them in.
-      onLogin(newUserData);
+  const handleEnterDashboard = () => {
+      // Login button dabane par App.jsx ko data bhejo
+      if (apiUserData && apiToken) {
+          onLogin({ user: apiUserData, token: apiToken });
+      }
   };
 
-  // --- RENDER: ERROR SCREEN (Browser Detect) ---
-  if (status === 'ERROR') {
-      return (
-          <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-6 text-center">
-              <ShieldAlert size={64} className="text-red-500 mb-4" />
-              <h1 className="text-2xl font-bold text-red-400">Security Alert</h1>
-              <p className="text-gray-400 mt-2">{errorMsg}</p>
-              <p className="text-xs text-gray-600 mt-8">USG Security Protocol v1.0</p>
-          </div>
-      );
-  }
+  const handleSignupSuccess = (responseFromSignup) => {
+      // Signup form se jo final data (user + token) milega, usse login karao
+      onLogin(responseFromSignup); 
+  };
 
-  // --- RENDER: LOADING SCREEN ---
-  if (status === 'CHECKING') {
-      return (
-          <div className="min-h-screen flex flex-col items-center justify-center bg-blue-900 text-white">
-              <Loader2 size={48} className="animate-spin text-blue-400 mb-4" />
-              <p className="text-sm font-bold tracking-widest animate-pulse">VERIFYING IDENTITY...</p>
-          </div>
-      );
-  }
+  // --- RENDER LOGIC ---
 
-  // --- RENDER: SIGNUP SCREEN ---
+  if (status === 'ERROR') return <div className="p-10 text-center text-red-500 font-bold">Please open in Telegram App</div>;
+  
+  if (status === 'CHECKING') return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-blue-900 text-white">
+          <Loader2 size={48} className="animate-spin text-blue-400 mb-4" />
+          <p className="text-sm font-bold tracking-widest animate-pulse">CONNECTING TO SERVER...</p>
+      </div>
+  );
+
   if (status === 'SIGNUP') {
       return (
-          <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-              <SignupForm onSignupComplete={handleSignupComplete} />
-          </div>
+         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+             {/* Signup Form ab API se token lekar wapas yaha aayega */}
+             <SignupForm onSignupComplete={handleSignupSuccess} />
+         </div>
       );
   }
 
-  // --- RENDER: LOGIN SCREEN (Existing User) ---
+  // STATUS === LOGIN
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-700 via-indigo-800 to-purple-900 p-6 overflow-hidden relative">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-700 via-indigo-800 to-purple-900 p-6 relative">
         <BrandLogo />
         <div className="w-full max-w-sm z-10">
             <WelcomeText />
-            <UserCard user={tgUser} />
-            <LoginButton onClick={() => onLogin(tgUser)} isLoading={false} />
+            <UserCard user={apiUserData || tgUser} /> {/* Show Server Name if available */}
+            
+            <LoginButton onClick={handleEnterDashboard} isLoading={false} />
+            
+            <p className="text-center text-blue-200/50 text-[10px] mt-8 tracking-wider">
+              SESSION SECURED • TOKEN READY
+            </p>
         </div>
     </div>
   );
