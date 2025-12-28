@@ -1,264 +1,397 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Building, GraduationCap, ChevronDown, CheckCircle, 
-  Loader2, BookOpen, Smartphone, Calendar 
+  Loader2, BookOpen, Smartphone, Calendar, X, AlertCircle, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import { getSecureHeaders, getTelegramUser } from '../../utils/security';
 import { API_ENDPOINTS, STATIC_FILES } from '../../config/apiConfig';
-import CustomAlert from '../../components/ui/CustomAlert'; // Ensure path is correct
 
+// ==========================================
+// 🎨 1. MODERN CUSTOM DROPDOWN COMPONENT
+// ==========================================
+const ModernSelect = ({ label, icon: Icon, options, value, onChange, placeholder, disabled, loading }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedLabel = options.find(o => o.value.toString() === value?.toString())?.label;
+
+  return (
+    <div className="relative mb-3" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <div 
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer bg-gray-50 
+        ${isOpen ? 'border-blue-500 ring-2 ring-blue-500/20 bg-white' : 'border-gray-200'}
+        ${disabled ? 'opacity-60 cursor-not-allowed' : 'hover:bg-white'}`}
+      >
+        <div className="flex items-center gap-3 overflow-hidden">
+          <Icon size={18} className="text-gray-400 shrink-0" />
+          <span className={`text-sm font-medium truncate ${selectedLabel ? 'text-gray-800' : 'text-gray-400'}`}>
+            {loading ? "Loading..." : (selectedLabel || placeholder)}
+          </span>
+        </div>
+        <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {/* Dropdown Menu (Absolute) */}
+      <AnimatePresence>
+        {isOpen && !disabled && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 5 }} exit={{ opacity: 0, y: -10 }}
+            className="absolute z-50 w-full bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar"
+          >
+            {options.length > 0 ? (
+              options.map((opt) => (
+                <div 
+                  key={opt.value}
+                  onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                  className={`px-4 py-3 text-sm font-medium cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-none
+                  ${value === opt.value ? 'bg-blue-50 text-blue-600' : 'text-gray-600'}`}
+                >
+                  {opt.label}
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-xs text-gray-400">No options available</div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ==========================================
+// 📅 2. MODERN CUSTOM DATE PICKER
+// ==========================================
+const ModernDatePicker = ({ value, onChange }) => {
+  const [showPicker, setShowPicker] = useState(false);
+  const [tempDate, setTempDate] = useState(value || "");
+
+  // Simple native-like UI but controlled
+  return (
+    <div className="relative mb-3">
+       <div 
+        onClick={() => setShowPicker(true)}
+        className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:bg-white transition-all"
+       >
+          <Calendar size={18} className="text-gray-400" />
+          <span className={`text-sm font-medium ${value ? 'text-gray-800' : 'text-gray-400'}`}>
+             {value || "Date of Birth"}
+          </span>
+       </div>
+
+       {/* Date Picker Modal Overlay */}
+       <AnimatePresence>
+         {showPicker && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[60] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-3xl"
+            >
+                <div className="w-full px-6">
+                    <h3 className="text-center font-bold text-gray-700 mb-4">Select Birth Date</h3>
+                    <input 
+                        type="date" 
+                        value={tempDate}
+                        onChange={(e) => setTempDate(e.target.value)}
+                        className="w-full p-3 bg-gray-100 rounded-xl text-center font-bold text-lg outline-none border-2 border-transparent focus:border-blue-500 mb-4"
+                    />
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setShowPicker(false)}
+                            className="flex-1 py-3 rounded-xl bg-gray-200 font-bold text-gray-600 text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={() => { onChange(tempDate); setShowPicker(false); }}
+                            className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm"
+                        >
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+         )}
+       </AnimatePresence>
+    </div>
+  );
+};
+
+// ==========================================
+// 🚀 3. MAIN SIGNUP FORM
+// ==========================================
 const SignupForm = ({ onSignupComplete }) => {
   const tgUser = getTelegramUser();
-  
   const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(false); // For Colleges
-  const [courseLoading, setCourseLoading] = useState(false); // For Courses
   
-  // Alert State
-  const [alert, setAlert] = useState(null);
+  // Loading States
+  const [dataLoading, setDataLoading] = useState(false); 
+  const [courseLoading, setCourseLoading] = useState(false); 
+  
+  // In-Card Alert State
+  const [alertMsg, setAlertMsg] = useState(null); // { msg, type: 'error' | 'success' }
 
   // Lists
   const [universities, setUniversities] = useState([]);
   const [colleges, setColleges] = useState([]);
   const [courses, setCourses] = useState([]);
 
+  // Form Data
   const [formData, setFormData] = useState({
     tg_id: tgUser?.id || '',
     username: tgUser?.username || '',
     name: tgUser?.first_name ? `${tgUser.first_name} ${tgUser.last_name || ''}`.trim() : '',
     photo: tgUser?.photo_url || null,
-    
-    // IDs
-    universityId: '',
-    collegeCode: '',
-    courseId: '',
-
-    // Names
-    universityName: '',
-    collegeName: '',
-    courseName: '',
-    
-    // Details
-    mobile: '',
-    email: '',
-    dob: '', // 🔥 NEW DOB FIELD
+    universityId: '', universityName: '',
+    collegeCode: '', collegeName: '',
+    courseId: '', courseName: '',
+    mobile: '', email: '', dob: '',
   });
 
-  // --- 1. LOAD UNIVERSITIES ---
+  // --- API CALLS ---
   useEffect(() => {
     fetch(STATIC_FILES.UNIVERSITIES)
       .then(res => res.json())
-      .then(setUniversities)
-      .catch(() => triggerAlert("Failed to load Universities", "error"));
+      .then(data => setUniversities(data.map(u => ({ value: u.id, label: u.name }))))
+      .catch(() => showAlert("Failed to load Universities"));
   }, []);
 
-  // --- 2. LOAD COLLEGES (When Uni Changes) ---
   useEffect(() => {
-    if (!formData.universityId) {
-        setColleges([]);
-        setCourses([]); // Clear courses too
-        return;
-    }
-    
+    if (!formData.universityId) { setColleges([]); return; }
     setDataLoading(true);
     fetch(API_ENDPOINTS.GET_COLLEGES(formData.universityId), { headers: getSecureHeaders() })
     .then(res => res.json())
     .then(data => {
-        setColleges(data.STATUS_CODE === 200 ? data.RESPONSE : []);
+        const list = data.STATUS_CODE === 200 ? data.RESPONSE : [];
+        setColleges(list.map(c => ({ value: c.collegeCode, label: c.collegeName })));
         setDataLoading(false);
-    })
-    .catch(() => {
-        setDataLoading(false);
-        triggerAlert("Error loading colleges", "error");
     });
   }, [formData.universityId]);
 
-  // --- 3. LOAD COURSES (When COLLEGE Changes) ---
-  // 🔥 Logic Change: Ab Course College Code par depend karega
   useEffect(() => {
-    if (!formData.collegeCode) {
-        setCourses([]);
-        return;
-    }
-
+    if (!formData.collegeCode) { setCourses([]); return; }
     setCourseLoading(true);
     fetch(API_ENDPOINTS.GET_COURSES(formData.collegeCode), { headers: getSecureHeaders() })
     .then(res => res.json())
     .then(data => {
-        setCourses(data.STATUS_CODE === 200 ? data.RESPONSE : []);
+        const list = data.STATUS_CODE === 200 ? data.RESPONSE : [];
+        setCourses(list.map(c => ({ value: c.courseId, label: c.courseData.courseShortName })));
         setCourseLoading(false);
-    })
-    .catch(() => {
-        setCourseLoading(false);
-        // Optional: Alert mat dikhao agar course nahi mile, bas list khali rakho
     });
   }, [formData.collegeCode]);
 
   // --- HANDLERS ---
-  
-  const triggerAlert = (msg, type = 'error') => {
-      setAlert({ message: msg, type });
+  const showAlert = (msg, type = 'error') => {
+      setAlertMsg({ msg, type });
+      setTimeout(() => setAlertMsg(null), 4000); // Auto hide after 4s
   };
 
-  const handleUniChange = (e) => {
-      const id = e.target.value;
-      const uni = universities.find(u => u.id.toString() === id);
-      setFormData({ 
-          ...formData, 
-          universityId: id, 
-          universityName: uni?.name || '',
-          collegeCode: '', collegeName: '', // Reset Child
-          courseId: '', courseName: ''      // Reset Grandchild
-      });
+  const updateField = (key, value) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+    setAlertMsg(null); // Clear error on interaction
   };
 
-  const handleCollegeChange = (e) => {
-      const code = e.target.value;
-      const col = colleges.find(c => c.collegeCode === code);
-      setFormData({ 
-          ...formData, 
-          collegeCode: code, 
-          collegeName: col?.collegeName || '',
-          courseId: '', courseName: '' // Reset Child
-      });
+  // Special Handlers for Logic
+  const handleUniSelect = (val) => {
+      const uni = universities.find(u => u.value.toString() === val.toString());
+      setFormData(prev => ({ 
+          ...prev, universityId: val, universityName: uni?.label,
+          collegeCode: '', collegeName: '', courseId: '', courseName: '' 
+      }));
   };
 
-  const handleCourseChange = (e) => {
-      const id = e.target.value;
-      const course = courses.find(c => c.courseId.toString() === id);
-      setFormData({ 
-          ...formData, 
-          courseId: id, 
-          courseName: course?.courseData.courseShortName || '' 
-      });
+  const handleCollegeSelect = (val) => {
+      const col = colleges.find(c => c.value === val);
+      setFormData(prev => ({ 
+          ...prev, collegeCode: val, collegeName: col?.label,
+          courseId: '', courseName: '' 
+      }));
   };
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleCourseSelect = (val) => {
+      const course = courses.find(c => c.value.toString() === val.toString());
+      setFormData(prev => ({ 
+          ...prev, courseId: val, courseName: course?.label 
+      }));
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if(!formData.universityId || !formData.collegeCode || !formData.courseId || !formData.dob) {
-        triggerAlert("Please fill all fields including DOB", "error");
+    // STRICT VALIDATION
+    const required = ['name', 'dob', 'universityId', 'collegeCode', 'courseId', 'mobile', 'email'];
+    for (let field of required) {
+        if (!formData[field]) {
+            showAlert(`Field '${field.toUpperCase()}' is required!`, 'error');
+            return;
+        }
+    }
+    
+    // Mobile Validation
+    if (!/^[6-9]\d{9}$/.test(formData.mobile)) {
+        showAlert("Invalid Indian Mobile Number", 'error');
+        return;
+    }
+
+    // Email Validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        showAlert("Invalid Email Address", 'error');
         return;
     }
 
     setLoading(true);
-    
     try {
         const response = await fetch(API_ENDPOINTS.REGISTER_USER, {
             method: 'POST',
             headers: getSecureHeaders(),
             body: JSON.stringify(formData)
         });
-
         const data = await response.json();
 
         if (data.STATUS_CODE === 200) {
-            onSignupComplete({
-                user: data.RESPONSE.user_data,
-                token: data.RESPONSE.token
-            });
+            onSignupComplete({ user: data.RESPONSE.user_data, token: data.RESPONSE.token });
         } else {
-            triggerAlert(data.MESSAGE || "Registration Failed", "error");
+            showAlert(data.MESSAGE || "Registration Failed", 'error');
         }
-    } catch (err) {
-        triggerAlert("Network Connection Failed", "error");
+    } catch {
+        showAlert("Connection Error. Try Again.", 'error');
     } finally {
         setLoading(false);
     }
   };
 
   return (
-    <>
-    {/* Floating Alert Component */}
-    {alert && <CustomAlert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
-
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }} 
       animate={{ opacity: 1, scale: 1 }} 
-      className="w-full max-w-sm bg-white rounded-3xl shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]"
+      className="w-full max-w-sm bg-white rounded-3xl shadow-2xl relative flex flex-col overflow-hidden max-h-[85vh] border border-gray-100"
     >
-      {/* Header */}
-      <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-600 z-10"></div>
-      
-      <div className="pt-6 pb-2 text-center shrink-0">
-         <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
-         <p className="text-gray-400 text-xs mt-1">Join GNIKNAP Community</p>
+      {/* HEADER WITH IN-BOUND ALERT */}
+      <div className="relative pt-6 pb-2 px-6 shrink-0 bg-white z-20">
+         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+         
+         <AnimatePresence mode="wait">
+             {alertMsg ? (
+                 <motion.div 
+                    initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                    className={`p-3 rounded-xl flex items-center gap-2 text-xs font-bold shadow-md mb-2
+                    ${alertMsg.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600'}`}
+                 >
+                    <AlertCircle size={16} className="shrink-0" />
+                    <p className="leading-tight">{alertMsg.msg}</p>
+                 </motion.div>
+             ) : (
+                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-2">
+                    <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
+                    <p className="text-gray-400 text-xs">Fill details to continue</p>
+                 </motion.div>
+             )}
+         </AnimatePresence>
       </div>
 
-      {/* Scrollable Form Area */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar">
-        <form onSubmit={handleRegister} className="space-y-3">
+      {/* SCROLLABLE FORM AREA */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2 custom-scrollbar relative z-10">
+        <form onSubmit={handleRegister}>
             
-            {/* Name */}
-            <div className="relative">
-                <User size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
-                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Full Name" className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-semibold" />
-            </div>
-
-            {/* DOB (New Field) */}
-            <div className="relative">
-                <Calendar size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
+            {/* Full Name */}
+            <div className="relative mb-3 group">
+                <User size={18} className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <input 
-                    type="date" 
-                    name="dob" 
-                    onChange={handleChange} 
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-medium text-gray-600" 
+                    type="text" 
+                    value={formData.name} 
+                    onChange={(e) => updateField('name', e.target.value)} 
+                    placeholder="Full Name" 
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-semibold focus:bg-white focus:border-blue-500 transition-all" 
                 />
             </div>
 
-            {/* University */}
-            <div className="relative">
-                <Building size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
-                <select name="universityId" onChange={handleUniChange} className="w-full pl-10 pr-8 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-medium text-gray-700">
-                    <option value="">Select University</option>
-                    {universities.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-                <ChevronDown size={16} className="absolute right-3 top-4 text-gray-400 pointer-events-none"/>
+            {/* Custom Date Picker */}
+            <ModernDatePicker 
+                value={formData.dob} 
+                onChange={(date) => updateField('dob', date)} 
+            />
+
+            {/* University Selector */}
+            <ModernSelect 
+                label="University" 
+                icon={Building} 
+                options={universities} 
+                value={formData.universityId} 
+                onChange={handleUniSelect} 
+                placeholder="Select University"
+            />
+
+            {/* College Selector */}
+            <ModernSelect 
+                label="College" 
+                icon={GraduationCap} 
+                options={colleges} 
+                value={formData.collegeCode} 
+                onChange={handleCollegeSelect} 
+                placeholder="Select College"
+                disabled={!formData.universityId}
+                loading={dataLoading}
+            />
+
+            {/* Course Selector */}
+            <ModernSelect 
+                label="Course" 
+                icon={BookOpen} 
+                options={courses} 
+                value={formData.courseId} 
+                onChange={handleCourseSelect} 
+                placeholder="Select Course"
+                disabled={!formData.collegeCode}
+                loading={courseLoading}
+            />
+
+            {/* Contact Details */}
+            <div className="relative mb-3 group">
+                <Smartphone size={18} className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within:text-blue-500" />
+                <input 
+                    type="tel" 
+                    value={formData.mobile} 
+                    onChange={(e) => updateField('mobile', e.target.value)} 
+                    placeholder="Mobile Number" 
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-semibold focus:bg-white focus:border-blue-500 transition-all" 
+                />
             </div>
 
-            {/* College */}
-            <div className="relative">
-                <GraduationCap size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
-                <select name="collegeCode" onChange={handleCollegeChange} disabled={!formData.universityId} className="w-full pl-10 pr-8 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-medium text-gray-700 disabled:opacity-50">
-                    <option value="">{dataLoading ? "Loading Colleges..." : "Select College"}</option>
-                    {colleges.map(c => <option key={c.collegeCode} value={c.collegeCode}>{c.collegeName}</option>)}
-                </select>
+            <div className="relative mb-4 group">
+                <Mail size={18} className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within:text-blue-500" />
+                <input 
+                    type="email" 
+                    value={formData.email} 
+                    onChange={(e) => updateField('email', e.target.value)} 
+                    placeholder="Email Address" 
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-medium focus:bg-white focus:border-blue-500 transition-all" 
+                />
             </div>
 
-            {/* Course (Depends on College now) */}
-            <div className="relative">
-                <BookOpen size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
-                <select name="courseId" onChange={handleCourseChange} disabled={!formData.collegeCode} className="w-full pl-10 pr-8 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-medium text-gray-700 disabled:opacity-50">
-                    <option value="">{courseLoading ? "Loading Courses..." : "Select Course"}</option>
-                    {courses.map(c => <option key={c.courseId} value={c.courseId}>{c.courseData.courseShortName}</option>)}
-                </select>
-            </div>
-
-            {/* Contact */}
-            <div className="grid grid-cols-1 gap-3">
-                <div className="relative">
-                    <Smartphone size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
-                    <input type="tel" name="mobile" onChange={handleChange} placeholder="Mobile Number" className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-semibold" />
-                </div>
-                <div className="relative">
-                    <Mail size={18} className="absolute left-3.5 top-3.5 text-gray-400" />
-                    <input type="email" name="email" onChange={handleChange} placeholder="Email Address" className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-medium" />
-                </div>
-            </div>
-
-            <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg mt-2 flex justify-center gap-2 items-center">
-                {loading ? <Loader2 className="animate-spin" /> : <>Complete Signup <CheckCircle size={18}/></>}
+            {/* Submit Button */}
+            <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg flex justify-center gap-2 items-center active:scale-95 transition-transform"
+            >
+                {loading ? <Loader2 className="animate-spin" /> : <>Register Account <CheckCircle size={18}/></>}
             </button>
         </form>
       </div>
     </motion.div>
-    </>
   );
 };
 
