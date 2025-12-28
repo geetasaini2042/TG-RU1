@@ -1,15 +1,16 @@
 // src/config/apiConfig.js
 
-// Yahan apna server URL dalein
+// 🔥 NEW RENDER URL
 export const API_BASE_URL = "https://webapp-api-46qi.onrender.com"; 
 
 export const API_ENDPOINTS = {
   // Auth & Check
   CHECK_USER: `${API_BASE_URL}/api/user/check`,
+  LOGIN_USER: `${API_BASE_URL}/api/user/login`,
   REGISTER_USER: `${API_BASE_URL}/api/user/register`,
   VALIDATE_TOKEN: `${API_BASE_URL}/api/user/validate-token`,
   
-  // Profile Updates (Yeh Naye Add kiye hain)
+  // Profile Updates
   UPDATE_DETAIL: `${API_BASE_URL}/api/user/update/detail`,
   UPDATE_PHOTO: `${API_BASE_URL}/api/profile/update-photo`,
   
