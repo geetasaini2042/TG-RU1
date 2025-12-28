@@ -1,7 +1,7 @@
 // src/config/apiConfig.js
 
 // Yahan apna server URL dalein
-export const API_BASE_URL = "https://apitgbot.pankajsainikishanpura02.workers.dev"; 
+export const API_BASE_URL = "https://labour-theresita-sankajsaini-382d4778.koyeb.app"; 
 
 export const API_ENDPOINTS = {
   // Auth & Check
