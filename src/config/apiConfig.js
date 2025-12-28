@@ -1,7 +1,7 @@
 // src/config/apiConfig.js
 
 // Yahan apna server URL dalein
-export const API_BASE_URL = "http://127.0.0.1:5000"; 
+export const API_BASE_URL = "https://webapp-api-46qi.onrender.com"; 
 
 export const API_ENDPOINTS = {
   // Auth & Check
