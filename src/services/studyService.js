@@ -1,32 +1,26 @@
 import { API_ENDPOINTS } from '../config/apiConfig';
 import { getSecureHeaders } from '../utils/security';
 
-// Fetch Content (Folders/Files)
 export const fetchStudyContent = async (collegeCode, courseId, parentId = null) => {
   try {
     const response = await fetch(API_ENDPOINTS.GET_STUDY_CONTENT, {
       method: 'POST',
-      headers: {
-        ...getSecureHeaders(),
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        collegeCode, 
-        courseId, 
-        parentId // Null means root (Semesters), otherwise folder ID
-      })
+      headers: { ...getSecureHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collegeCode, courseId, parentId })
     });
     
-    const data = await response.json();
-    // Structure: [{ id, name, type: 'folder'|'file', fileType: 'pdf'|'video', ... }]
-    return data.STATUS_CODE === 200 ? data.RESPONSE : [];
+    const result = await response.json();
+    
+    // 🔥 Strict Check: Aapke format ke hisab se
+    if (result.Ok === true && Array.isArray(result.data)) {
+        return { success: true, data: result.data };
+    } else {
+        return { success: false, message: result.message || "Invalid Data Format" };
+    }
   } catch (error) {
-    console.error("Study Content Error", error);
-    return [];
+    return { success: false, message: "Server Connection Failed" };
   }
 };
-
-// Send File via Bot
 export const sendFileViaBot = async (fileUrl, fileName, userId, token) => {
     try {
         const response = await fetch(API_ENDPOINTS.SEND_FILE_VIA_BOT, {
