@@ -5,7 +5,7 @@ import { ArrowLeft, ChevronRight, AlertCircle, X, RefreshCcw, FolderOpen } from 
 // Services & Components
 import { fetchStudyContent, sendFileViaBot } from '../../services/studyService';
 import FolderItem from './components/FolderItem';
-import FileItem from './components/FileItem'; // (Previous code se)
+import FileItem from './components/FileItem';
 
 // ==========================================
 // 💀 SKELETON LOADER (YouTube Style)
@@ -28,25 +28,21 @@ const SkeletonLoader = () => (
 );
 
 // ==========================================
-// 🍞 CUSTOM TOAST (Red Error)
+// 🍞 CUSTOM TOAST (For Success/Error)
 // ==========================================
-const ErrorToast = ({ message, onClose }) => {
+const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
-        const timer = setTimeout(onClose, 5000);
+        const timer = setTimeout(onClose, 4000);
         return () => clearTimeout(timer);
     }, [onClose]);
 
     return (
         <motion.div 
-            initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-[100] bg-red-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 min-w-[250px]"
+            initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
+            className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-full shadow-2xl flex items-center gap-3 min-w-[200px] whitespace-nowrap backdrop-blur-md
+            ${type === 'error' ? 'bg-red-600/90 text-white' : 'bg-green-600/90 text-white'}`}
         >
-            <AlertCircle size={20} />
-            <div className="flex-1">
-                <h4 className="text-xs font-bold uppercase">Error</h4>
-                <p className="text-xs opacity-90">{message}</p>
-            </div>
-            <button onClick={onClose}><X size={16} /></button>
+            <span className="text-xs font-bold">{message}</span>
         </motion.div>
     );
 };
@@ -57,29 +53,26 @@ const ErrorToast = ({ message, onClose }) => {
 const StudyMaterial = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState(false); // Full screen error
-  const [toastMsg, setToastMsg] = useState(null);      // Popup error
+  const [toast, setToast] = useState(null);            // Popup msg { msg, type }
   
   const [path, setPath] = useState([{ id: null, name: 'Materials' }]); 
   const [contents, setContents] = useState([]); 
   
   const user = JSON.parse(localStorage.getItem('usg_user') || '{}');
 
-  // --- LOAD CONTENT ---
+  // --- 1. LOAD CONTENT ---
   const loadContent = async (parentId = null) => {
     setLoading(true);
     setErrorState(false);
     
-    // 1. API Call
+    // API Call
     const result = await fetchStudyContent(user.collegeCode, user.courseId, parentId);
     
     if (result.success) {
-        // Success: Render Data
         setContents(result.data);
     } else {
-        // Failure: Show Errors
         setErrorState(true);
-        setToastMsg(result.message || "Failed to fetch data");
-        // Haptic Error
+        setToast({ msg: result.message || "Failed to fetch data", type: 'error' });
         if(window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
         }
@@ -87,11 +80,13 @@ const StudyMaterial = ({ onBack }) => {
     setLoading(false);
   };
 
+  // Initial Load
   useEffect(() => {
     loadContent(null);
   }, []);
 
-  // --- HANDLERS ---
+  // --- 2. HANDLERS ---
+  
   const handleFolderClick = (folder) => {
       setPath([...path, { id: folder.id, name: folder.name }]);
       loadContent(folder.id);
@@ -109,7 +104,40 @@ const StudyMaterial = ({ onBack }) => {
       }
   };
 
-  // --- HELPERS ---
+  // 🔥 CORE FIX: DOWNLOAD HANDLER
+  const handleFileDownload = async (file) => {
+      console.log("📥 Initiating Download for:", file.name);
+
+      const token = localStorage.getItem('usg_token');
+      // Reload user data to ensure tg_id is present
+      const freshUser = JSON.parse(localStorage.getItem('usg_user') || '{}');
+      
+      if (!freshUser.tg_id) {
+          setToast({ msg: "Telegram User ID Missing. Relogin.", type: 'error' });
+          return false;
+      }
+
+      if (!file.url) {
+          setToast({ msg: "File Link Not Available", type: 'error' });
+          return false;
+      }
+
+      // API Call to Send File via Bot
+      const success = await sendFileViaBot(file.url, file.name, freshUser.tg_id, token);
+      
+      if (success) {
+          setToast({ msg: "Sent to Chat! Check Telegram 📩", type: 'success' });
+          if(window.Telegram?.WebApp?.HapticFeedback) {
+              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+          return true;
+      } else {
+          setToast({ msg: "Server failed to send file", type: 'error' });
+          return false;
+      }
+  };
+
+  // --- 3. HELPERS ---
   const folders = contents.filter(item => item.type === 'folder');
   const files = contents.filter(item => item.type === 'file');
 
@@ -117,7 +145,16 @@ const StudyMaterial = ({ onBack }) => {
       <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap pb-2 no-scrollbar px-5">
           {path.map((p, idx) => (
               <div key={idx} className="flex items-center">
-                  <span className={`text-xs font-bold ${idx === path.length - 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                  <span 
+                    onClick={() => {
+                        if(idx < path.length - 1) {
+                            const newPath = path.slice(0, idx + 1);
+                            setPath(newPath);
+                            loadContent(p.id);
+                        }
+                    }}
+                    className={`text-xs font-bold cursor-pointer transition-colors ${idx === path.length - 1 ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
                       {p.name}
                   </span>
                   {idx < path.length - 1 && <ChevronRight size={12} className="text-gray-300 mx-1" />}
@@ -129,11 +166,11 @@ const StudyMaterial = ({ onBack }) => {
   return (
     <motion.div 
       initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 50 }}
-      className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-10 transition-colors duration-300"
+      className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-20 transition-colors duration-300"
     >
       {/* Toast Notification */}
       <AnimatePresence>
-          {toastMsg && <ErrorToast message={toastMsg} onClose={() => setToastMsg(null)} />}
+          {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
 
       {/* --- HEADER --- */}
@@ -152,7 +189,7 @@ const StudyMaterial = ({ onBack }) => {
       {/* --- CONTENT AREA --- */}
       <div className="px-5 pt-4">
          
-         {/* 1. LOADING STATE (YouTube Style) */}
+         {/* 1. LOADING STATE */}
          {loading && <SkeletonLoader />}
 
          {/* 2. ERROR STATE (Full Screen) */}
@@ -174,16 +211,18 @@ const StudyMaterial = ({ onBack }) => {
              </div>
          )}
 
-         {/* 3. SUCCESS STATE (Data Render) */}
+         {/* 3. SUCCESS STATE (Render Data) */}
          {!loading && !errorState && (
              <>
                  {contents.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-[50vh] opacity-50">
                         <FolderOpen size={48} className="text-gray-300 mb-2"/>
-                        <p className="text-gray-400 text-sm">Folder is empty</p>
+                        <p className="text-gray-400 text-sm">This folder is empty</p>
                     </div>
                  ) : (
                     <div className="space-y-6">
+                        
+                        {/* FOLDERS GRID */}
                         {folders.length > 0 && (
                             <div className="grid grid-cols-2 gap-3">
                                 {folders.map((item) => (
@@ -191,11 +230,17 @@ const StudyMaterial = ({ onBack }) => {
                                 ))}
                             </div>
                         )}
+
+                        {/* FILES LIST */}
                         {files.length > 0 && (
                             <div className="flex flex-col gap-2">
-                                <h4 className="text-[10px] font-bold text-gray-400 uppercase mt-2">Documents</h4>
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase mt-4 mb-1 pl-1">Documents</h4>
                                 {files.map((item) => (
-                                    <FileItem key={item.id} data={item} />
+                                    <FileItem 
+                                        key={item.id} 
+                                        data={item} 
+                                        onDownload={handleFileDownload} // ✅ FIX APPLIED HERE
+                                    />
                                 ))}
                             </div>
                         )}
