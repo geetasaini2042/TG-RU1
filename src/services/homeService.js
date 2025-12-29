@@ -17,7 +17,7 @@ export const fetchBanners = async () => {
 // src/services/homeService.js
 
 // ... other imports
-import { API_ENDPOINTS } from '../config/apiConfig';
+//import { API_ENDPOINTS } from '../config/apiConfig';
 
 export const fetchAllSyllabus = async () => {
   try {
