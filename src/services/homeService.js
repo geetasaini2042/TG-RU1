@@ -14,6 +14,26 @@ export const fetchBanners = async () => {
     return [];
   }
 };
+// src/services/homeService.js
+
+// ... other imports
+import { API_ENDPOINTS } from '../config/apiConfig';
+
+export const fetchAllSyllabus = async () => {
+  try {
+    // API endpoint needs to be added to apiConfig.js first:
+    // GET_ALL_SYLLABUS: `${API_BASE_URL}/api/syllabus/all`
+    const response = await fetch(API_ENDPOINTS.GET_ALL_SYLLABUS, {
+      headers: getSecureHeaders()
+    });
+    const data = await response.json();
+    return data.STATUS_CODE === 200 ? data.RESPONSE : [];
+  } catch (error) {
+    console.error("Syllabus Error", error);
+    return [];
+  }
+};
+// ... other functions
 
 // 2. Fetch Telegram Channels
 export const fetchChannels = async () => {
