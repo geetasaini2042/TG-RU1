@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download } from 'lucide-react';
-import { fetchSyllabus } from '../../../../../services/homeService';
+import { fetchSyllabus } from '../../../../services/homeService';
 
 const SyllabusList = () => {
   const [list, setList] = useState([]);
