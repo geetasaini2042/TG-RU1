@@ -232,7 +232,7 @@ const SignupForm = ({ onSignupComplete }) => {
     e.preventDefault();
     
     // STRICT VALIDATION
-    const required = ['name', 'dob', 'universityId', 'collegeCode', 'courseId', 'mobile', 'email'];
+    const required = ['name', 'universityId', 'collegeCode', 'courseId', 'mobile', 'email'];
     for (let field of required) {
         if (!formData[field]) {
             showAlert(`Field '${field.toUpperCase()}' is required!`, 'error');
