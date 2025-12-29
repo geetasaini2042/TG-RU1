@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   
   // Data Fetching
   GET_COLLEGES: (uniId) => `${API_BASE_URL}/api/colleges/${uniId}`,
+  DELETE_ACCOUNT: `${API_BASE_URL}/api/user/delete`,
   
   // 🔥 CHANGE: Ab Course College Code se aayega
   GET_COURSES: (collegeCode) => `${API_BASE_URL}/courses/${collegeCode}`,
