@@ -317,13 +317,6 @@ const SignupForm = ({ onSignupComplete }) => {
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border border-gray-200 outline-none text-sm font-semibold focus:bg-white focus:border-blue-500 transition-all" 
                 />
             </div>
-
-            {/* Custom Date Picker */}
-            <ModernDatePicker 
-                value={formData.dob} 
-                onChange={(date) => updateField('dob', date)} 
-            />
-
             {/* University Selector */}
             <ModernSelect 
                 label="University" 
