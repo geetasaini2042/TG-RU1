@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchBanners } from '../../../services/homeService'; // Import Service
+import { fetchBanners } from '../../../../services/homeService'; // Import Service
 
 const BannerSlider = () => {
   const [banners, setBanners] = useState([]);
