@@ -21,6 +21,8 @@ export const API_ENDPOINTS = {
   
   // 🔥 CHANGE: Ab Course College Code se aayega
   GET_COURSES: (collegeCode) => `${API_BASE_URL}/courses/${collegeCode}`,
+  GET_STUDY_CONTENT: `${API_BASE_URL}/api/study-material/fetch`,
+  SEND_FILE_VIA_BOT: `${API_BASE_URL}/api/study-material/send-file`, // Generic file sender
 };
 
 export const STATIC_FILES = {
