@@ -1,140 +1,152 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Building, GraduationCap, ChevronDown, CheckCircle, 
-  Loader2, BookOpen, Smartphone, Calendar, AlertCircle 
+  Loader2, BookOpen, Smartphone, AlertCircle 
 } from 'lucide-react';
-
-// === IMPORT YOUR NEW CALENDAR COMPONENT ===
-// Adjust path based on where you saved it
-import CustomCalendar from '../../components/CustomCalendar'; 
-
 import { getSecureHeaders, getTelegramUser } from '../../utils/security';
 import { API_ENDPOINTS, STATIC_FILES } from '../../config/apiConfig';
 
 // ==========================================
-// 🎨 MODERN CUSTOM DROPDOWN
+// 🧠 SMART DATE SELECTOR (LOGIC BASED)
 // ==========================================
-const ModernSelect = ({ label, icon: Icon, options, value, onChange, placeholder, disabled, loading }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef(null);
+const SmartDateSelector = ({ value, onChange }) => {
+  // Parse existing value "YYYY-MM-DD" or default to empty
+  const [d, m, y] = value ? value.split('-') : ["", "", ""];
+  
+  const [selDay, setSelDay] = useState(d);
+  const [selMonth, setSelMonth] = useState(m);
+  const [selYear, setSelYear] = useState(y);
 
+  const currentYear = new Date().getFullYear();
+  const minAge = 10;
+  
+  // 1. Generate Days (1-31)
+  const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+  // 2. Generate Months (Dynamic based on Day)
+  const months = useMemo(() => {
+    const allMonths = [
+      { val: '01', label: 'Jan' }, { val: '02', label: 'Feb' }, { val: '03', label: 'Mar' },
+      { val: '04', label: 'Apr' }, { val: '05', label: 'May' }, { val: '06', label: 'Jun' },
+      { val: '07', label: 'Jul' }, { val: '08', label: 'Aug' }, { val: '09', label: 'Sep' },
+      { val: '10', label: 'Oct' }, { val: '11', label: 'Nov' }, { val: '12', label: 'Dec' }
+    ];
+
+    if (!selDay) return allMonths;
+
+    const dInt = parseInt(selDay);
+    // Filter months logic
+    return allMonths.filter(m => {
+      if (dInt === 31) return !['02', '04', '06', '09', '11'].includes(m.val); // No Feb, Apr, Jun, Sep, Nov
+      if (dInt === 30) return m.val !== '02'; // No Feb
+      return true;
+    });
+  }, [selDay]);
+
+  // 3. Generate Years (Dynamic based on Leap Year logic + Age Limit)
+  const years = useMemo(() => {
+    let yearList = [];
+    // User must be at least 10 years old
+    for (let i = currentYear - minAge; i >= 1960; i--) {
+      yearList.push(i.toString());
+    }
+
+    // Special Check: Feb 29
+    if (selDay === '29' && selMonth === '02') {
+      return yearList.filter(yr => {
+        const yInt = parseInt(yr);
+        return (yInt % 4 === 0 && yInt % 100 !== 0) || (yInt % 400 === 0);
+      });
+    }
+
+    return yearList;
+  }, [selDay, selMonth, currentYear]);
+
+  // Update Parent when all 3 are selected
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    // Auto-reset Month/Year if they become invalid due to Day change
+    if (selDay === '31' && ['02', '04', '06', '09', '11'].includes(selMonth)) setSelMonth("");
+    if (selDay === '30' && selMonth === '02') setSelMonth("");
+    
+    // Auto-reset Year if Feb 29 selected but year is not leap
+    if (selDay === '29' && selMonth === '02' && selYear) {
+      const yInt = parseInt(selYear);
+      const isLeap = (yInt % 4 === 0 && yInt % 100 !== 0) || (yInt % 400 === 0);
+      if (!isLeap) setSelYear("");
+    }
 
-  const selectedLabel = options.find(o => o.value.toString() === value?.toString())?.label;
+    if (selDay && selMonth && selYear) {
+      onChange(`${selYear}-${selMonth}-${selDay}`);
+    } else {
+        onChange(""); // Incomplete
+    }
+  }, [selDay, selMonth, selYear]);
+
+  // Common Select Style
+  const selectClass = "w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none";
 
   return (
-    <div className="relative mb-4" ref={dropdownRef}>
-      <label className="text-xs font-semibold text-slate-500 ml-1 mb-1 block uppercase tracking-wider">{label}</label>
-      <motion.div 
-        whileTap={{ scale: disabled ? 1 : 0.98 }}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer shadow-sm
-        ${isOpen ? 'border-indigo-500 ring-2 ring-indigo-500/10 bg-white' : 'border-slate-200 bg-slate-50/50'}
-        ${disabled ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:bg-white hover:border-indigo-300'}`}
-      >
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className={`p-2 rounded-lg ${value ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
-             <Icon size={18} />
+    <div className="mb-5">
+       <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block uppercase">Date of Birth</label>
+       <div className="flex gap-2">
+          {/* Day Select */}
+          <div className="relative w-1/4">
+             <select value={selDay} onChange={(e) => setSelDay(e.target.value)} className={selectClass}>
+                <option value="">DD</option>
+                {days.map(d => <option key={d} value={d}>{d}</option>)}
+             </select>
           </div>
-          <span className={`text-sm font-medium truncate ${selectedLabel ? 'text-slate-800' : 'text-slate-400'}`}>
-            {loading ? "Loading..." : (selectedLabel || placeholder)}
-          </span>
-        </div>
-        <ChevronDown size={18} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-500' : ''}`} />
-      </motion.div>
 
-      <AnimatePresence>
-        {isOpen && !disabled && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10, scale: 0.95 }} 
-            animate={{ opacity: 1, y: 4, scale: 1 }} 
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="absolute z-50 w-full bg-white/95 backdrop-blur-xl border border-slate-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar"
-          >
-            {options.length > 0 ? (
-              options.map((opt) => (
-                <div 
-                  key={opt.value}
-                  onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                  className={`px-4 py-3 text-sm font-medium cursor-pointer transition-all border-b border-slate-50 last:border-none flex items-center justify-between
-                  ${value === opt.value ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50 hover:pl-6'}`}
-                >
-                  {opt.label}
-                  {value === opt.value && <CheckCircle size={14} className="text-indigo-600"/>}
-                </div>
-              ))
-            ) : (
-              <div className="p-4 text-center text-xs text-slate-400">No options found</div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Month Select */}
+          <div className="relative w-2/5">
+             <select value={selMonth} onChange={(e) => setSelMonth(e.target.value)} className={selectClass} disabled={!selDay}>
+                <option value="">Month</option>
+                {months.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+             </select>
+          </div>
+
+          {/* Year Select */}
+          <div className="relative flex-1">
+             <select value={selYear} onChange={(e) => setSelYear(e.target.value)} className={selectClass} disabled={!selMonth}>
+                <option value="">Year</option>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+             </select>
+          </div>
+       </div>
+       {/* Helper Text */}
+       {selDay === '29' && selMonth === '02' && (
+         <p className="text-[10px] text-blue-500 mt-1 pl-1">* Showing only Leap Years</p>
+       )}
     </div>
   );
 };
 
 // ==========================================
-// 📅 NEW DATE PICKER WRAPPER
+// 🎨 SIMPLE SELECT (Standard for Mobile)
 // ==========================================
-const DatePickerWrapper = ({ value, onChange }) => {
-  const [showModal, setShowModal] = useState(false);
-
-  // Helper to format date nicely for display (e.g. "12 Oct, 2002")
-  const displayDate = value ? new Date(value).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric'
-  }) : "Select Date of Birth";
-
+const StandardSelect = ({ label, icon: Icon, options, value, onChange, placeholder, disabled, loading }) => {
   return (
-    <div className="relative mb-4">
-       <label className="text-xs font-semibold text-slate-500 ml-1 mb-1 block uppercase tracking-wider">Date of Birth</label>
-       
-       {/* Trigger Button */}
-       <motion.div 
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setShowModal(true)}
-        className={`w-full flex items-center gap-3 p-3.5 bg-slate-50/50 rounded-xl border border-slate-200 cursor-pointer hover:bg-white hover:border-indigo-300 transition-all shadow-sm
-        ${value ? 'border-indigo-200 bg-indigo-50/30' : ''}`}
-       >
-          <div className={`p-2 rounded-lg ${value ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
-            <Calendar size={18} />
+    <div className="relative mb-4 group">
+       <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block uppercase">{label}</label>
+       <div className="relative">
+          <div className="absolute left-3 top-3.5 text-slate-400 pointer-events-none">
+             {loading ? <Loader2 size={18} className="animate-spin text-blue-500"/> : <Icon size={18} />}
           </div>
-          <span className={`text-sm font-medium ${value ? 'text-slate-800' : 'text-slate-400'}`}>
-             {displayDate}
-          </span>
-       </motion.div>
-
-       {/* Modal Overlay */}
-       <AnimatePresence>
-         {showModal && (
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 z-[60] bg-slate-900/20 backdrop-blur-sm flex items-center justify-center rounded-[2rem]"
-            >
-                <motion.div 
-                    initial={{ scale: 0.8, opacity: 0, y: 20 }} 
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.8, opacity: 0, y: 20 }}
-                    className="bg-white rounded-2xl shadow-2xl border border-white/50 overflow-hidden w-[90%]"
-                >
-                    {/* USES THE NEW CUSTOM CALENDAR COMPONENT */}
-                    <CustomCalendar 
-                        value={value} 
-                        onChange={onChange} 
-                        onClose={() => setShowModal(false)} 
-                    />
-                </motion.div>
-            </motion.div>
-         )}
-       </AnimatePresence>
+          <select 
+            value={value} 
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className={`w-full pl-10 pr-8 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none disabled:opacity-50
+            ${!value ? 'text-slate-400' : 'text-slate-800'}`}
+          >
+             <option value="" disabled>{loading ? "Loading..." : placeholder}</option>
+             {options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+             ))}
+          </select>
+          <ChevronDown size={16} className="absolute right-3 top-4 text-slate-400 pointer-events-none" />
+       </div>
     </div>
   );
 };
@@ -164,7 +176,7 @@ const SignupForm = ({ onSignupComplete }) => {
     mobile: '', email: '', dob: '',
   });
 
-  // --- API CALLS (Same as before) ---
+  // --- API CALLS ---
   useEffect(() => {
     fetch(STATIC_FILES.UNIVERSITIES)
       .then(res => res.json())
@@ -216,10 +228,7 @@ const SignupForm = ({ onSignupComplete }) => {
 
   const handleCollegeSelect = (val) => {
       const col = colleges.find(c => c.value === val);
-      setFormData(prev => ({ 
-          ...prev, collegeCode: val, collegeName: col?.label,
-          courseId: '', courseName: '' 
-      }));
+      setFormData(prev => ({ ...prev, collegeCode: val, collegeName: col?.label, courseId: '', courseName: '' }));
   };
 
   const handleCourseSelect = (val) => {
@@ -267,96 +276,75 @@ const SignupForm = ({ onSignupComplete }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-100 p-4 font-sans">
+    <div className="flex items-center justify-center min-h-screen bg-slate-100 p-2 font-sans">
+      {/* Increased Width & Removed Fixed Height for Mobile */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl shadow-indigo-500/10 relative flex flex-col overflow-hidden h-[85vh] border border-white"
+        initial={{ opacity: 0, scale: 0.98 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 flex flex-col overflow-hidden max-h-screen"
       >
         {/* HEADER */}
-        <div className="relative pt-8 pb-4 px-6 shrink-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-100">
-           
-           {/* ALERTS */}
+        <div className="relative pt-6 pb-4 px-6 shrink-0 bg-white z-10 border-b border-slate-100">
            <AnimatePresence>
                {alertMsg && (
-                   <motion.div 
-                      initial={{ opacity: 0, y: -50, x: '-50%' }} 
-                      animate={{ opacity: 1, y: 10, x: '-50%' }} 
-                      exit={{ opacity: 0, y: -50, x: '-50%' }}
-                      className={`absolute top-0 left-1/2 z-50 px-4 py-2 rounded-full flex items-center gap-2 text-xs font-bold shadow-xl border whitespace-nowrap
-                      ${alertMsg.type === 'error' ? 'bg-red-500 text-white border-red-600' : 'bg-emerald-500 text-white border-emerald-600'}`}
-                   >
-                      <AlertCircle size={14} className="fill-white/20" />
-                      <span>{alertMsg.msg}</span>
-                   </motion.div>
+                   <div className={`absolute top-0 left-0 w-full p-2 text-center text-xs font-bold
+                      ${alertMsg.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                      {alertMsg.msg}
+                   </div>
                )}
            </AnimatePresence>
-
-           <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
-                  {formData.photo ? <img src={formData.photo} alt="User" className="w-full h-full rounded-2xl object-cover" /> : <User size={28} />}
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Setup Profile</h2>
-                <p className="text-slate-400 text-xs font-medium">Please complete your registration</p>
-              </div>
-           </div>
+           
+           <h2 className="text-2xl font-extrabold text-slate-800 mt-2">Create Account</h2>
+           <p className="text-slate-500 text-xs">Enter your details to register</p>
         </div>
 
-        {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 no-scrollbar bg-slate-50/30">
-          <form onSubmit={handleRegister}>
+        {/* SCROLLABLE FORM AREA */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+          <form onSubmit={handleRegister} className="pb-4">
               
-              {/* Personal Info */}
-              <div className="mb-6">
-                 <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-4">Personal Details</h4>
-                 
-                 <div className="relative mb-4 group">
-                    <label className="text-xs font-semibold text-slate-500 ml-1 mb-1 block uppercase tracking-wider">Full Name</label>
+              {/* Profile Photo & Name */}
+              <div className="flex items-center gap-4 mb-6">
+                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border-2 border-slate-200 shrink-0 overflow-hidden">
+                    {formData.photo ? <img src={formData.photo} alt="U" className="w-full h-full object-cover"/> : <User className="text-slate-400"/>}
+                 </div>
+                 <div className="flex-1 group">
+                    <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block uppercase">Full Name</label>
+                    <input 
+                        type="text" value={formData.name} onChange={(e) => updateField('name', e.target.value)} 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all font-semibold text-slate-800"
+                        placeholder="Your Name"
+                    />
+                 </div>
+              </div>
+
+              {/* LOGIC BASED DATE SELECTOR */}
+              <SmartDateSelector value={formData.dob} onChange={(date) => updateField('dob', date)} />
+
+              {/* Academic Dropdowns (Using Native Select for Mobile Stability) */}
+              <StandardSelect label="University" icon={Building} options={universities} value={formData.universityId} onChange={handleUniSelect} placeholder="Select University" />
+              <StandardSelect label="College" icon={GraduationCap} options={colleges} value={formData.collegeCode} onChange={handleCollegeSelect} placeholder="Select College" disabled={!formData.universityId} loading={dataLoading} />
+              <StandardSelect label="Course" icon={BookOpen} options={courses} value={formData.courseId} onChange={handleCourseSelect} placeholder="Select Course" disabled={!formData.collegeCode} loading={courseLoading} />
+
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                 <div className="group">
+                    <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block uppercase">Mobile</label>
                     <div className="relative">
-                        <User size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                        <Smartphone size={18} className="absolute left-3 top-3.5 text-slate-400"/>
                         <input 
-                            type="text" 
-                            value={formData.name} 
-                            onChange={(e) => updateField('name', e.target.value)} 
-                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 rounded-xl border border-slate-200 outline-none text-sm font-semibold text-slate-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm"
-                            placeholder="e.g. Rahul Kumar"
+                            type="tel" value={formData.mobile} onChange={(e) => updateField('mobile', e.target.value)} 
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-semibold text-slate-800"
+                            placeholder="Mobile No."
                         />
                     </div>
                  </div>
-
-                 {/* NEW DATE PICKER IMPLEMENTATION */}
-                 <DatePickerWrapper 
-                    value={formData.dob} 
-                    onChange={(date) => updateField('dob', date)} 
-                 />
-              </div>
-
-              {/* Academic Info */}
-              <div className="mb-6">
-                 <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-4">Academic Details</h4>
-                 <ModernSelect label="University" icon={Building} options={universities} value={formData.universityId} onChange={handleUniSelect} placeholder="Select University" />
-                 <ModernSelect label="College" icon={GraduationCap} options={colleges} value={formData.collegeCode} onChange={handleCollegeSelect} placeholder="Select College" disabled={!formData.universityId} loading={dataLoading} />
-                 <ModernSelect label="Course" icon={BookOpen} options={courses} value={formData.courseId} onChange={handleCourseSelect} placeholder="Select Course" disabled={!formData.collegeCode} loading={courseLoading} />
-              </div>
-
-              {/* Contact Info */}
-              <div className="mb-8">
-                 <h4 className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-4">Contact Info</h4>
-                 <div className="grid grid-cols-1 gap-4">
-                    <div className="relative group">
-                        <Smartphone size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-indigo-500" />
-                        <input 
-                            type="tel" value={formData.mobile} onChange={(e) => updateField('mobile', e.target.value)} 
-                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 rounded-xl border border-slate-200 outline-none text-sm font-semibold text-slate-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm"
-                            placeholder="Mobile Number"
-                        />
-                    </div>
-                    <div className="relative group">
-                        <Mail size={18} className="absolute left-4 top-4 text-slate-400 group-focus-within:text-indigo-500" />
+                 <div className="group">
+                    <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block uppercase">Email</label>
+                    <div className="relative">
+                        <Mail size={18} className="absolute left-3 top-3.5 text-slate-400"/>
                         <input 
                             type="email" value={formData.email} onChange={(e) => updateField('email', e.target.value)} 
-                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 rounded-xl border border-slate-200 outline-none text-sm font-semibold text-slate-700 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-300 shadow-sm"
+                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-semibold text-slate-800"
                             placeholder="Email Address"
                         />
                     </div>
@@ -364,15 +352,12 @@ const SignupForm = ({ onSignupComplete }) => {
               </div>
 
               {/* Submit Button */}
-              <div className="pb-4">
-                  <motion.button 
-                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      type="submit" disabled={loading} 
-                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-xl shadow-xl shadow-indigo-500/40 flex justify-center gap-3 items-center transition-all disabled:opacity-70 disabled:shadow-none"
-                  >
-                      {loading ? <Loader2 className="animate-spin" /> : <>Complete Registration <CheckCircle size={20}/></>}
-                  </motion.button>
-              </div>
+              <button 
+                  type="submit" disabled={loading} 
+                  className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform flex justify-center gap-2 items-center"
+              >
+                  {loading ? <Loader2 className="animate-spin" /> : <>Complete Signup <CheckCircle size={20}/></>}
+              </button>
           </form>
         </div>
       </motion.div>
