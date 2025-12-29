@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Send, Users } from 'lucide-react';
-import { fetchChannels } from '../../../../../services/homeService';
+import { fetchChannels } from '../../../../services/homeService';
 
 const TelegramList = () => {
   const [channels, setChannels] = useState([]);
