@@ -12,16 +12,16 @@ const WelcomeHeader = ({ user }) => {
   return (
     <div className="flex justify-between items-center mb-6">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-blue-500 to-purple-500">
+        <div className="w-12 h-12 rounded-full p-0.5 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md">
            <img 
              src={user?.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
              alt="Profile" 
-             className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-800"
+             className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-800 bg-white"
            />
         </div>
         <div>
-           <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">{getGreeting()}</p>
-           <h2 className="text-lg font-bold text-gray-800 dark:text-white leading-none">
+           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{getGreeting()}</p>
+           <h2 className="text-xl font-extrabold text-gray-800 dark:text-white leading-none">
              {user?.name?.split(' ')[0] || "Student"} 👋
            </h2>
         </div>
