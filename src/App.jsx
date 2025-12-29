@@ -6,7 +6,7 @@ import { getSecureHeaders } from './utils/security';
 // Imports (Profile, Home etc...)
 import Login from './pages/login/Login';
 import BottomNav from './components/BottomNav';
-import Home from './pages/Home';
+import Home from './pages/home/Home';
 import Profile from './pages/profile/Profile'; 
 // ... other imports
 
