@@ -7,7 +7,7 @@ import {
 
 // === IMPORT YOUR NEW CALENDAR COMPONENT ===
 // Adjust path based on where you saved it
-import CustomCalendar from './components/CustomCalendar'; 
+import CustomCalendar from '../../components/CustomCalendar'; 
 
 import { getSecureHeaders, getTelegramUser } from '../../utils/security';
 import { API_ENDPOINTS, STATIC_FILES } from '../../config/apiConfig';
