@@ -1,5 +1,5 @@
 // 🔥 NEW RENDER URL
-export const API_BASE_URL = "https://webapp-api-46qi.onrender.com"; 
+export const API_BASE_URL = "https://webappapi.edumate.life"; 
 
 export const API_ENDPOINTS = {
   // Auth
